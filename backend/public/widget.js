@@ -234,8 +234,9 @@
 
     const self = this;
     loadStripe().then(stripe => {
-      const elements = stripe.elements();
+      const elements = stripe.elements({ locale: 'en-GB' });
       const card = elements.create('card', {
+        hidePostalCode: true,
         style: {
           base: { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: '15px', color: '#111827', '::placeholder': { color: '#9ca3af' } },
           invalid: { color: '#dc2626' }
