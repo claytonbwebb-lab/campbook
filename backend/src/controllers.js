@@ -5,8 +5,8 @@ import Stripe from 'stripe';
 import { Resend } from 'resend';
 import { generateBookingRef, calculateBookingCost, getAvailablePitchTypes } from './utils.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
+const getResend = () => new Resend(process.env.RESEND_API_KEY || '');
 const PLATFORM_FEE_PERCENT = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || '3');
 
 // ── Public: Tenant config ────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ export const createBooking = async (req, res) => {
     });
 
     // Create Stripe Payment Intent
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: totalAmount,
       currency: 'gbp',
       payment_method: paymentMethodId,
@@ -207,7 +207,7 @@ export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
@@ -241,12 +241,12 @@ export const initiateStripeConnect = async (req, res) => {
     let accountId = tenant.stripeAccountId;
 
     if (!accountId) {
-      const account = await stripe.accounts.create({ type: 'express', country: 'GB', email: tenant.email });
+      const account = await getStripe().accounts.create({ type: 'express', country: 'GB', email: tenant.email });
       accountId = account.id;
       await prisma.tenant.update({ where: { id: tenantId }, data: { stripeAccountId: accountId } });
     }
 
-    const accountLink = await stripe.accountLinks.create({
+    const accountLink = await getStripe().accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.ADMIN_BASE_URL}/admin/stripe`,
       return_url: `${process.env.ADMIN_BASE_URL}/api/stripe/connect/return`,
@@ -264,7 +264,7 @@ export const handleStripeConnectReturn = async (req, res) => {
   try {
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (tenant.stripeAccountId) {
-      const account = await stripe.accounts.retrieve(tenant.stripeAccountId);
+      const account = await getStripe().accounts.retrieve(tenant.stripeAccountId);
       if (account.details_submitted) {
         await prisma.tenant.update({ where: { id: tenantId }, data: { stripeOnboarded: true } });
       }
@@ -335,7 +335,7 @@ export const cancelBooking = async (req, res) => {
     if (booking.status === 'cancelled') return res.status(400).json({ message: 'Already cancelled' });
 
     if (booking.stripePaymentIntentId) {
-      await stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId });
+      await getStripe().refunds.create({ payment_intent: booking.stripePaymentIntentId });
     }
     const updated = await prisma.booking.update({
       where: { id: booking.id },
@@ -344,7 +344,7 @@ export const cancelBooking = async (req, res) => {
 
     // Notify guest
     if (resend && booking.guestEmail) {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: 'CampBook <noreply@campbook.co.uk>',
         to: booking.guestEmail,
         subject: `Booking ${booking.bookingRef} Cancelled`,
