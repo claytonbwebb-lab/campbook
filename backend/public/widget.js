@@ -1,5 +1,17 @@
 (function () {
   const API = document.currentScript ? new URL(document.currentScript.src).origin : '';
+  const STRIPE_PK = 'pk_test_51RjeKVGbumWSK3aP0UWdNrtqd4wf8RkDD8u9UzaIFpzaqdei1LBUc1817WfvXi2ubPOilY6SAFDnV1J4Np3SDy4f00xgYoVAWR';
+
+  // Lazy-load Stripe.js
+  function loadStripe() {
+    return new Promise((resolve) => {
+      if (window.Stripe) return resolve(window.Stripe(STRIPE_PK));
+      const s = document.createElement('script');
+      s.src = 'https://js.stripe.com/v3/';
+      s.onload = () => resolve(window.Stripe(STRIPE_PK));
+      document.head.appendChild(s);
+    });
+  }
 
   function injectStyles() {
     const css = `
@@ -212,34 +224,54 @@
         <div class="cb-summary-row"><span>Guests</span><span>${guest.adults} adults${guest.children ? ', '+guest.children+' children' : ''}</span></div>
         <div class="cb-summary-row cb-summary-total"><span>Total</span><span>${fmt(total)}</span></div>
       </div>
-      <div id="cb-card-element" style="padding:12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:14px;min-height:44px;background:#fafafa;color:#6b7280;font-size:0.9rem;display:flex;align-items:center">Card payment — Stripe integration required in production</div>
+      <div style="margin-bottom:6px;font-size:0.82rem;color:#6b7280">🔒 Test mode — use card <strong>4242 4242 4242 4242</strong>, any expiry, any CVC</div>
+      <div id="cb-card-element" style="padding:12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:14px;min-height:44px;background:#fff"></div>
       <div id="cb-step5-error"></div>
       <button class="cb-btn" id="cb-pay-btn">Pay ${fmt(total)} & Confirm</button>
       <button class="cb-btn cb-btn-outline" id="cb-back">← Back</button>`;
 
-    // In production this would use Stripe Elements — for demo, simulate
-    w.querySelector('#cb-pay-btn').onclick = () => {
-      const btn = w.querySelector('#cb-pay-btn');
-      btn.disabled = true; btn.textContent = 'Processing...';
-      // Demo: call backend without real payment method
-      const body = {
-        tenantSlug: this.tenantSlug,
-        pitchTypeId: pitchType.id,
-        arrivalDate: arrival, departureDate: departure,
-        numAdults: guest.adults, numChildren: guest.children,
-        selectedExtras: Object.entries(this.state.extras).filter(([,q])=>q>0).map(([id,quantity])=>({id,quantity})),
-        guestName: guest.name, guestEmail: guest.email, guestPhone: guest.phone,
-        paymentMethodId: 'pm_card_visa', // Stripe test token
-      };
-      fetch(`${API}/api/bookings`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
-        .then(r => r.json())
-        .then(data => {
-          if (data.bookingRef) this.renderSuccess(data.bookingRef);
-          else { btn.disabled = false; btn.textContent = `Pay ${fmt(total)} & Confirm`; w.querySelector('#cb-step5-error').innerHTML = `<div class="cb-error">${data.message || 'Payment failed. Please try again.'}</div>`; }
-        })
-        .catch(() => { btn.disabled = false; btn.textContent = `Pay ${fmt(total)} & Confirm`; w.querySelector('#cb-step5-error').innerHTML = '<div class="cb-error">Network error. Please try again.</div>'; });
-    };
     w.querySelector('#cb-back').onclick = () => this.renderStep4();
+
+    const self = this;
+    loadStripe().then(stripe => {
+      const elements = stripe.elements();
+      const card = elements.create('card', {
+        style: {
+          base: { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: '15px', color: '#111827', '::placeholder': { color: '#9ca3af' } },
+          invalid: { color: '#dc2626' }
+        }
+      });
+      card.mount('#cb-card-element');
+
+      w.querySelector('#cb-pay-btn').onclick = async () => {
+        const btn = w.querySelector('#cb-pay-btn');
+        btn.disabled = true; btn.textContent = 'Processing...';
+        const errEl = w.querySelector('#cb-step5-error');
+        errEl.innerHTML = '';
+
+        const { paymentMethod, error } = await stripe.createPaymentMethod({ type: 'card', card, billing_details: { name: guest.name, email: guest.email } });
+        if (error) {
+          btn.disabled = false; btn.textContent = `Pay ${fmt(total)} & Confirm`;
+          errEl.innerHTML = `<div class="cb-error">${error.message}</div>`; return;
+        }
+
+        const body = {
+          tenantSlug: self.tenantSlug, pitchTypeId: pitchType.id,
+          arrivalDate: arrival, departureDate: departure,
+          numAdults: guest.adults, numChildren: guest.children,
+          selectedExtras: Object.entries(self.state.extras).filter(([,q])=>q>0).map(([id,quantity])=>({id,quantity})),
+          guestName: guest.name, guestEmail: guest.email, guestPhone: guest.phone,
+          paymentMethodId: paymentMethod.id,
+        };
+        fetch(`${API}/api/bookings`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+          .then(r => r.json())
+          .then(data => {
+            if (data.bookingRef) self.renderSuccess(data.bookingRef);
+            else { btn.disabled = false; btn.textContent = `Pay ${fmt(total)} & Confirm`; errEl.innerHTML = `<div class="cb-error">${data.message || 'Payment failed. Please try again.'}</div>`; }
+          })
+          .catch(() => { btn.disabled = false; btn.textContent = `Pay ${fmt(total)} & Confirm`; errEl.innerHTML = '<div class="cb-error">Network error. Please try again.</div>'; });
+      };
+    });
   };
 
   Widget.prototype.renderSuccess = function (ref) {
