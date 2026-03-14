@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampBook Admin</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111}
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .login-card{background:#fff;border-radius:12px;padding:40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
+  .login-card h1{font-size:1.5rem;margin-bottom:8px}
+  .login-card p{color:#6b7280;font-size:0.9rem;margin-bottom:24px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:5px}
+  .field input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.95rem;outline:none}
+  .field input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15)}
+  .btn{display:block;width:100%;padding:11px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer}
+  .btn:hover{background:#1d4ed8}.btn:disabled{background:#9ca3af;cursor:not-allowed}
+  .error{background:#fef2f2;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:0.88rem;margin-bottom:12px}
+  #app{display:none;min-height:100vh;display:none;flex-direction:row}
+  .sidebar{width:220px;background:#1e293b;color:#e2e8f0;padding:24px 0;display:flex;flex-direction:column;min-height:100vh;flex-shrink:0}
+  .sidebar-logo{padding:0 20px 24px;font-size:1.1rem;font-weight:700;color:#fff;border-bottom:1px solid #334155;margin-bottom:12px}
+  .sidebar-logo span{color:#60a5fa}
+  .nav-item{padding:10px 20px;cursor:pointer;font-size:0.9rem;border-left:3px solid transparent;transition:all 0.15s}
+  .nav-item:hover{background:#334155;color:#fff}
+  .nav-item.active{background:#334155;color:#fff;border-left-color:#3b82f6}
+  .nav-section{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;padding:16px 20px 4px}
+  .sidebar-footer{margin-top:auto;padding:16px 20px;font-size:0.82rem;color:#64748b}
+  .main{flex:1;padding:28px;overflow:auto}
+  .page{display:none}.page.active{display:block}
+  h2{font-size:1.4rem;margin-bottom:20px;color:#111}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+  .stat-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+  .stat-label{font-size:0.82rem;color:#6b7280;margin-bottom:6px}
+  .stat-value{font-size:1.8rem;font-weight:700;color:#111}
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:20px}
+  .card h3{font-size:1rem;font-weight:600;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:0.88rem}
+  th{text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb}
+  td{padding:10px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.78rem;font-weight:600}
+  .badge-confirmed{background:#dcfce7;color:#16a34a}
+  .badge-pending{background:#fef9c3;color:#ca8a04}
+  .badge-cancelled{background:#fee2e2;color:#dc2626}
+  .btn-sm{padding:5px 12px;font-size:0.82rem;border-radius:6px;cursor:pointer;border:1px solid #e5e7eb;background:#fff}
+  .btn-sm:hover{background:#f3f4f6}
+  .btn-sm.danger{color:#dc2626;border-color:#fca5a5}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-group{margin-bottom:14px}
+  .form-group label{display:block;font-size:0.84rem;font-weight:600;color:#374151;margin-bottom:4px}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.92rem;outline:none}
+  .form-group input:focus,.form-group select:focus{border-color:#2563eb}
+  .btn-primary{background:#2563eb;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:0.9rem;font-weight:600;cursor:pointer}
+  .btn-primary:hover{background:#1d4ed8}
+  .loading{color:#6b7280;padding:20px;text-align:center}
+  .empty{color:#9ca3af;font-size:0.9rem;text-align:center;padding:30px}
+  .stripe-status{display:flex;align-items:center;gap:12px;padding:16px;background:#f9fafb;border-radius:8px;margin-bottom:16px}
+  .stripe-dot{width:12px;height:12px;border-radius:50%;background:#dc2626}
+  .stripe-dot.connected{background:#16a34a}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🏕️ CampBook</h1>
+    <p>Sign in to manage your campsite</p>
+    <div id="login-error"></div>
+    <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="admin@your-campsite.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+    <button class="btn" id="login-btn">Sign In</button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">🏕️ <span>Camp</span>Book</div>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+    <div class="nav-section">Bookings</div>
+    <div class="nav-item" data-page="bookings">📋 All Bookings</div>
+    <div class="nav-section">Setup</div>
+    <div class="nav-item" data-page="pitches">⛺ Pitch Types</div>
+    <div class="nav-item" data-page="extras">➕ Extras</div>
+    <div class="nav-item" data-page="blocked">🚫 Blocked Dates</div>
+    <div class="nav-section">Account</div>
+    <div class="nav-item" data-page="settings">⚙️ Settings</div>
+    <div class="nav-item" data-page="stripe">💳 Payments</div>
+    <div class="nav-item" data-page="widget">🔗 Widget</div>
+    <div class="sidebar-footer" id="tenant-name">Loading...</div>
+    <div class="nav-item" id="logout-btn" style="color:#f87171">← Sign Out</div>
+  </div>
+  <div class="main">
+    <div class="page active" id="page-dashboard">
+      <h2>Dashboard</h2>
+      <div class="stats-grid" id="stats-grid"><div class="loading">Loading...</div></div>
+      <div class="card"><h3>Upcoming This Week</h3><div id="upcoming-bookings"><div class="loading">Loading...</div></div></div>
+    </div>
+    <div class="page" id="page-bookings">
+      <h2>All Bookings</h2>
+      <div class="card">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <select id="booking-status-filter" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.88rem">
+            <option value="">All statuses</option><option value="confirmed">Confirmed</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn-primary" onclick="loadBookings()">Filter</button>
+        </div>
+        <div id="bookings-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+    <div class="page" id="page-pitches">
+      <h2>Pitch Types</h2>
+      <div class="card"><h3>Add Pitch Type</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Name</label><input id="pt-name" placeholder="e.g. Hardstanding"></div>
+          <div class="form-group"><label>Base price/night (£)</label><input id="pt-price" type="number" placeholder="28.00"></div>
+          <div class="form-group"><label>Max occupancy</label><input id="pt-occ" type="number" value="4"></div>
+          <div class="form-group"><label>Max vehicles</label><input id="pt-veh" type="number" value="1"></div>
+        </div>
+        <div class="form-group"><label>Description</label><input id="pt-desc" placeholder="Optional description"></div>
+        <div class="form-group"><label><input type="checkbox" id="pt-ehu"> EHU included</label></div>
+        <button class="btn-primary" onclick="addPitchType()">Add Pitch Type</button>
+      </div>
+      <div class="card"><h3>Your Pitch Types</h3><div id="pitch-types-list"><div class="loading">Loading...</div></div></div>
+    </div>
+    <div class="page" id="page-extras">
+      <h2>Extras &amp; Add-ons</h2>
+      <div class="card"><h3>Add Extra</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Name</label><input id="ex-name" placeholder="e.g. Dog, Awning"></div>
+          <div class="form-group"><label>Price per night (£) — or leave blank if flat fee</label><input id="ex-ppn" type="number" step="0.01" placeholder="2.00"></div>
+          <div class="form-group"><label>Flat fee (£) — one-off charge</label><input id="ex-flat" type="number" step="0.01" placeholder="5.00"></div>
+          <div class="form-group"><label>Max units</label><input id="ex-max" type="number" value="1"></div>
+        </div>
+        <div class="form-group"><label><input type="checkbox" id="ex-unit"> Guest selects quantity</label></div>
+        <button class="btn-primary" onclick="addExtra()">Add Extra</button>
+      </div>
+      <div class="card"><h3>Current Extras</h3><div id="extras-list"><div class="loading">Loading...</div></div></div>
+    </div>
+    <div class="page" id="page-blocked">
+      <h2>Blocked Dates</h2>
+      <div class="card"><h3>Block a Date</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Pitch</label><select id="block-pitch"><option>Loading...</option></select></div>
+          <div class="form-group"><label>Date</label><input id="block-date" type="date"></div>
+        </div>
+        <div class="form-group"><label>Reason (optional)</label><input id="block-reason" placeholder="e.g. Maintenance"></div>
+        <button class="btn-primary" onclick="addBlockedDate()">Block Date</button>
+      </div>
+      <div class="card"><h3>Currently Blocked</h3><div id="blocked-list"><div class="loading">Loading...</div></div></div>
+    </div>
+    <div class="page" id="page-settings">
+      <h2>Settings</h2>
+      <div class="card" id="settings-form"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="page" id="page-stripe">
+      <h2>Payment Setup</h2>
+      <div class="card">
+        <div class="stripe-status"><div class="stripe-dot" id="stripe-dot"></div><div id="stripe-status-text">Checking...</div></div>
+        <p style="font-size:0.9rem;color:#6b7280;margin-bottom:16px">Connect your Stripe account to accept payments directly to your bank. We charge a 3% platform fee per booking.</p>
+        <button class="btn-primary" id="stripe-connect-btn">Connect with Stripe →</button>
+      </div>
+    </div>
+    <div class="page" id="page-widget">
+      <h2>Embed Widget</h2>
+      <div class="card">
+        <p style="margin-bottom:14px;font-size:0.9rem;color:#6b7280">Add the following code to your website to enable online booking:</p>
+        <pre id="widget-code" style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;font-size:0.82rem;overflow:auto;white-space:pre-wrap;line-height:1.6"></pre>
+        <button class="btn-primary" style="margin-top:12px" onclick="copyWidget()">Copy Code</button>
+      </div>
+      <div class="card"><h3>Live Preview</h3><div id="widget-preview"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('cb_token');
+let tenantSlug = '';
+
+// Auth
+document.getElementById('login-btn').onclick = async () => {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  try {
+    const r = await fetch(`${API}/api/admin/login`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email,password}) });
+    const d = await r.json();
+    if (d.token) { localStorage.setItem('cb_token', d.token); token = d.token; showApp(d.tenantName); }
+    else { document.getElementById('login-error').innerHTML = `<div class="error">${d.message||'Login failed'}</div>`; }
+  } catch(e) { document.getElementById('login-error').innerHTML = '<div class="error">Connection error</div>'; }
+  btn.disabled = false; btn.textContent = 'Sign In';
+};
+
+document.getElementById('login-password').onkeydown = e => { if (e.key === 'Enter') document.getElementById('login-btn').click(); };
+
+function showApp(name) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('tenant-name').textContent = name || 'My Campsite';
+  loadDashboard(); loadBookings(); loadPitchTypes(); loadExtras(); loadPitches(); loadBlockedDates(); loadSettings(); loadStripeStatus();
+}
+
+function authHeader() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+async function apiFetch(path, opts={}) {
+  const r = await fetch(`${API}${path}`, { ...opts, headers: { ...authHeader(), ...(opts.headers||{}) } });
+  if (r.status === 401) { localStorage.removeItem('cb_token'); location.reload(); }
+  return r.json();
+}
+
+// Nav
+document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(`page-${el.dataset.page}`).classList.add('active');
+  };
+});
+document.getElementById('logout-btn').onclick = () => { localStorage.removeItem('cb_token'); location.reload(); };
+
+// Dashboard
+async function loadDashboard() {
+  const d = await apiFetch('/api/admin/dashboard');
+  const fmt = p => '£'+(p/100).toFixed(2);
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Bookings this month</div><div class="stat-value">${d.bookingsThisMonth}</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue this month</div><div class="stat-value">${fmt(d.revenueThisMonth)}</div></div>
+    <div class="stat-card"><div class="stat-label">Arriving this week</div><div class="stat-value">${d.upcomingThisWeek.length}</div></div>`;
+  if (!d.upcomingThisWeek.length) { document.getElementById('upcoming-bookings').innerHTML = '<div class="empty">No arrivals this week.</div>'; return; }
+  document.getElementById('upcoming-bookings').innerHTML = `<table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th>Pitch</th><th>Total</th></tr></thead><tbody>${
+    d.upcomingThisWeek.map(b => `<tr><td><strong>${b.bookingRef}</strong></td><td>${b.guestName}</td><td>${new Date(b.arrivalDate).toLocaleDateString('en-GB')}</td><td>${b.pitch?.pitchType?.name||'—'}</td><td>${fmt(b.totalAmount)}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+
+// Bookings
+async function loadBookings() {
+  const status = document.getElementById('booking-status-filter')?.value || '';
+  const d = await apiFetch(`/api/admin/bookings${status ? '?status='+status : ''}`);
+  const fmt = p => '£'+(p/100).toFixed(2);
+  if (!d.length) { document.getElementById('bookings-table').innerHTML = '<div class="empty">No bookings found.</div>'; return; }
+  document.getElementById('bookings-table').innerHTML = `<table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Pitch</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>${
+    d.map(b => `<tr>
+      <td><strong>${b.bookingRef}</strong></td>
+      <td>${b.guestName}<br><small style="color:#6b7280">${b.guestEmail}</small></td>
+      <td>${new Date(b.arrivalDate).toLocaleDateString('en-GB')}</td>
+      <td>${new Date(b.departureDate).toLocaleDateString('en-GB')}</td>
+      <td>${b.pitch?.pitchType?.name||'—'} / ${b.pitch?.name||'—'}</td>
+      <td>${fmt(b.totalAmount)}</td>
+      <td><span class="badge badge-${b.status}">${b.status}</span></td>
+      <td>${b.status !== 'cancelled' ? `<button class="btn-sm danger" onclick="cancelBooking('${b.id}','${b.bookingRef}')">Cancel</button>` : ''}</td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+async function cancelBooking(id, ref) {
+  if (!confirm(`Cancel booking ${ref}?`)) return;
+  await apiFetch(`/api/admin/bookings/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }) });
+  loadBookings();
+}
+
+// Pitch Types
+async function loadPitchTypes() {
+  const d = await apiFetch('/api/admin/pitch-types');
+  const fmt = p => '£'+(p/100).toFixed(2);
+  document.getElementById('pitch-types-list').innerHTML = d.length ? `<table><thead><tr><th>Name</th><th>Base price</th><th>Max guests</th><th>EHU</th><th>Pitches</th></tr></thead><tbody>${
+    d.map(pt => `<tr><td>${pt.name}</td><td>${fmt(pt.basePricePerNight)}/night</td><td>${pt.maxOccupancy}</td><td>${pt.ehuIncluded?'✅':'—'}</td><td>${pt._count?.pitches||0}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">No pitch types yet.</div>';
+}
+
+async function addPitchType() {
+  const name = document.getElementById('pt-name').value.trim();
+  const price = parseFloat(document.getElementById('pt-price').value);
+  if (!name || !price) { alert('Name and price required'); return; }
+  await apiFetch('/api/admin/pitch-types', { method: 'POST', body: JSON.stringify({
+    name, basePricePerNight: Math.round(price*100), maxOccupancy: parseInt(document.getElementById('pt-occ').value)||4,
+    maxVehicles: parseInt(document.getElementById('pt-veh').value)||1, description: document.getElementById('pt-desc').value,
+    ehuIncluded: document.getElementById('pt-ehu').checked,
+  })});
+  loadPitchTypes(); document.getElementById('pt-name').value=''; document.getElementById('pt-price').value='';
+}
+
+// Pitches (for blocked dates selector)
+let allPitches = [];
+async function loadPitches() {
+  allPitches = await apiFetch('/api/admin/pitches');
+  const sel = document.getElementById('block-pitch');
+  if (sel) sel.innerHTML = allPitches.map(p => `<option value="${p.id}">${p.pitchType?.name||''} / ${p.name}</option>`).join('');
+}
+
+// Extras
+async function loadExtras() {
+  const d = await apiFetch('/api/admin/extras');
+  const fmt = p => p ? '£'+(p/100).toFixed(2) : '—';
+  document.getElementById('extras-list').innerHTML = d.length ? `<table><thead><tr><th>Name</th><th>Per night</th><th>Flat fee</th><th>Per unit</th><th>Max units</th><th>Active</th></tr></thead><tbody>${
+    d.map(ex => `<tr><td>${ex.name}</td><td>${fmt(ex.pricePerNight)}</td><td>${fmt(ex.priceFlat)}</td><td>${ex.perUnit?'Yes':'No'}</td><td>${ex.maxUnits||1}</td><td>${ex.active?'✅':'❌'}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">No extras yet.</div>';
+}
+
+async function addExtra() {
+  const name = document.getElementById('ex-name').value.trim();
+  if (!name) { alert('Name required'); return; }
+  const ppn = document.getElementById('ex-ppn').value;
+  const flat = document.getElementById('ex-flat').value;
+  await apiFetch('/api/admin/extras', { method: 'POST', body: JSON.stringify({
+    name, pricePerNight: ppn ? Math.round(parseFloat(ppn)*100) : null, priceFlat: flat ? Math.round(parseFloat(flat)*100) : null,
+    perUnit: document.getElementById('ex-unit').checked, maxUnits: parseInt(document.getElementById('ex-max').value)||1,
+  })});
+  loadExtras(); document.getElementById('ex-name').value=''; document.getElementById('ex-ppn').value=''; document.getElementById('ex-flat').value='';
+}
+
+// Blocked Dates
+async function loadBlockedDates() {
+  const d = await apiFetch('/api/admin/blocked-dates');
+  document.getElementById('blocked-list').innerHTML = d.length ? `<table><thead><tr><th>Pitch</th><th>Date</th><th>Reason</th><th></th></tr></thead><tbody>${
+    d.map(b => `<tr><td>${b.pitch?.name||b.pitchId}</td><td>${new Date(b.date).toLocaleDateString('en-GB')}</td><td>${b.reason||'—'}</td><td><button class="btn-sm danger" onclick="deleteBlockedDate('${b.id}')">Remove</button></td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">No blocked dates.</div>';
+}
+
+async function addBlockedDate() {
+  const pitchId = document.getElementById('block-pitch').value;
+  const date = document.getElementById('block-date').value;
+  if (!pitchId || !date) { alert('Pitch and date required'); return; }
+  await apiFetch('/api/admin/blocked-dates', { method: 'POST', body: JSON.stringify({ pitchId, date, reason: document.getElementById('block-reason').value }) });
+  loadBlockedDates();
+}
+
+async function deleteBlockedDate(id) {
+  if (!confirm('Remove this blocked date?')) return;
+  await fetch(`${API}/api/admin/blocked-dates/${id}`, { method: 'DELETE', headers: authHeader() });
+  loadBlockedDates();
+}
+
+// Settings
+async function loadSettings() {
+  const d = await apiFetch('/api/admin/settings');
+  tenantSlug = d.slug;
+  document.getElementById('settings-form').innerHTML = `
+    <h3>Campsite Details</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Name</label><input id="set-name" value="${d.name||''}"></div>
+      <div class="form-group"><label>Phone</label><input id="set-phone" value="${d.phone||''}"></div>
+      <div class="form-group"><label>Address</label><input id="set-address" value="${d.address||''}"></div>
+      <div class="form-group"><label>Region</label><input id="set-region" value="${d.region||''}"></div>
+      <div class="form-group"><label>Opening date</label><input type="date" id="set-open" value="${d.openingDate?.slice(0,10)||''}"></div>
+      <div class="form-group"><label>Closing date</label><input type="date" id="set-close" value="${d.closingDate?.slice(0,10)||''}"></div>
+    </div>
+    <button class="btn-primary" onclick="saveSettings()">Save Settings</button>`;
+  updateWidgetCode();
+}
+
+async function saveSettings() {
+  await apiFetch('/api/admin/settings', { method: 'PATCH', body: JSON.stringify({
+    name: document.getElementById('set-name').value, phone: document.getElementById('set-phone').value,
+    address: document.getElementById('set-address').value, region: document.getElementById('set-region').value,
+    openingDate: document.getElementById('set-open').value, closingDate: document.getElementById('set-close').value,
+  })});
+  alert('Settings saved.');
+}
+
+// Stripe
+async function loadStripeStatus() {
+  const d = await apiFetch('/api/admin/settings');
+  const connected = d.stripeOnboarded;
+  document.getElementById('stripe-dot').className = `stripe-dot ${connected ? 'connected' : ''}`;
+  document.getElementById('stripe-status-text').textContent = connected ? '✅ Connected — accepting payments' : '⚠️ Not connected — bookings will not process payments';
+  document.getElementById('stripe-connect-btn').textContent = connected ? 'Manage Stripe Account' : 'Connect with Stripe →';
+  document.getElementById('stripe-connect-btn').onclick = async () => {
+    const r = await apiFetch('/api/admin/stripe/connect');
+    if (r.url) window.location.href = r.url;
+  };
+}
+
+// Widget
+function updateWidgetCode() {
+  const slug = tenantSlug || 'your-campsite-slug';
+  const code = `<div data-campbook-tenant="${slug}"></div>\n<script src="${location.origin}/widget.js"><\/script>`;
+  const el = document.getElementById('widget-code');
+  if (el) el.textContent = code;
+  const preview = document.getElementById('widget-preview');
+  if (preview && slug !== 'your-campsite-slug') {
+    preview.innerHTML = `<div data-campbook-tenant="${slug}"></div>`;
+    const s = document.createElement('script'); s.src = '/widget.js'; document.head.appendChild(s);
+  }
+}
+
+function copyWidget() {
+  const code = document.getElementById('widget-code').textContent;
+  navigator.clipboard.writeText(code).then(() => alert('Copied to clipboard!'));
+}
+
+// Auto-login if token exists
+if (token) {
+  fetch(`${API}/api/admin/settings`, { headers: authHeader() })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d) showApp(d.name); else { localStorage.removeItem('cb_token'); } })
+    .catch(() => {});
+}
+</script>
+</body>
+</html>

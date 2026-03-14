@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id               String       @id @default(uuid())
+  name             String
+  slug             String       @unique
+  email            String       @unique
+  phone            String?
+  address          String?
+  region           String?
+  stripeAccountId  String?      @map("stripe_account_id")
+  stripeOnboarded  Boolean      @default(false) @map("stripe_onboarded")
+  password         String       @map("password")
+  openingDate      DateTime     @map("opening_date") @db.Date
+  closingDate      DateTime     @map("closing_date") @db.Date
+  noGroupsPolicy   Boolean      @default(false) @map("no_groups_policy")
+  minBookerAge     Int          @default(18) @map("min_booker_age")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  pitchTypes       PitchType[]
+  extras           Extra[]
+  pitches          Pitch[]
+  bookings         Booking[]
+
+  @@map("tenants")
+}
+
+model PitchType {
+  id                   String         @id @default(uuid())
+  tenantId             String         @map("tenant_id")
+  name                 String
+  description          String?
+  basePricePerNight    Int            @map("base_price_per_night")
+  maxOccupancy         Int            @map("max_occupancy")
+  maxVehicles          Int            @map("max_vehicles")
+  ehuIncluded          Boolean        @default(false) @map("ehu_included")
+  active               Boolean        @default(true)
+
+  tenant               Tenant         @relation(fields: [tenantId], references: [id])
+  seasonalRates        SeasonalRate[]
+  pitches              Pitch[]
+
+  @@map("pitch_types")
+}
+
+model SeasonalRate {
+  id              String   @id @default(uuid())
+  pitchTypeId     String   @map("pitch_type_id")
+  name            String
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime @map("end_date") @db.Date
+  pricePerNight   Int      @map("price_per_night")
+  minStayNights   Int      @map("min_stay_nights")
+
+  pitchType       PitchType @relation(fields: [pitchTypeId], references: [id])
+
+  @@map("seasonal_rates")
+}
+
+model Extra {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  name        String
+  pricePerNight Int?    @map("price_per_night")
+  priceFlat   Int?      @map("price_flat") // New field for flat rate extras
+  perUnit     Boolean   @default(false) @map("per_unit")
+  maxUnits    Int?      @map("max_units")
+  active      Boolean   @default(true)
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("extras")
+}
+
+model Pitch {
+  id            String       @id @default(uuid())
+  pitchTypeId   String       @map("pitch_type_id")
+  tenantId      String       @map("tenant_id")
+  name          String
+  active        Boolean      @default(true)
+
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  pitchType     PitchType    @relation(fields: [pitchTypeId], references: [id])
+  bookings      Booking[]
+  blockedDates  BlockedDate[]
+
+  @@map("pitches")
+}
+
+model Booking {
+  id                String    @id @default(uuid())
+  tenantId          String    @map("tenant_id")
+  pitchId           String?   @map("pitch_id") // Pitch can be null if not assigned yet
+  guestName         String    @map("guest_name")
+  guestEmail        String    @map("guest_email")
+  guestPhone        String?   @map("guest_phone")
+  arrivalDate       DateTime  @map("arrival_date") @db.Date
+  departureDate     DateTime  @map("departure_date") @db.Date
+  numAdults         Int       @map("num_adults")
+  numChildren       Int       @default(0) @map("num_children")
+  extras            Json      @default("[]") // JSONB for selected extras, quantities, prices
+  baseAmount        Int       @map("base_amount")
+  extrasAmount      Int       @map("extras_amount")
+  totalAmount       Int       @map("total_amount")
+  platformFee       Int       @map("platform_fee")
+  stripePaymentIntentId String? @unique @map("stripe_payment_intent_id")
+  stripeTransferId  String?   @unique @map("stripe_transfer_id")
+  status            String    @default("pending") // pending | confirmed | cancelled | refunded
+  bookingRef        String    @unique @map("booking_ref")
+  notes             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  pitch             Pitch?    @relation(fields: [pitchId], references: [id])
+
+  @@map("bookings")
+}
+
+model BlockedDate {
+  id        String   @id @default(uuid())
+  pitchId   String   @map("pitch_id")
+  date      DateTime @db.Date
+  reason    String?
+
+  pitch     Pitch    @relation(fields: [pitchId], references: [id])
+
+  @@unique([pitchId, date])
+  @@map("blocked_dates")
+}
