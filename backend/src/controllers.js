@@ -148,16 +148,20 @@ export const createBooking = async (req, res) => {
     });
 
     // Create Stripe Payment Intent
-    const paymentIntent = await getStripe().paymentIntents.create({
+    const piParams = {
       amount: totalAmount,
       currency: 'gbp',
       payment_method: paymentMethodId,
       confirm: true,
-      application_fee_amount: platformFee,
-      transfer_data: { destination: tenant.stripeAccountId },
       metadata: { bookingRef: result.bookingRef, bookingId: result.id },
-      return_url: `${process.env.ADMIN_BASE_URL}/booking-confirmed`,
-    });
+      return_url: `${process.env.ADMIN_BASE_URL || 'https://campbook-production.up.railway.app'}/booking-confirmed`,
+    };
+    // Only use Connect split payments if campsite has a connected account
+    if (tenant.stripeAccountId) {
+      piParams.application_fee_amount = platformFee;
+      piParams.transfer_data = { destination: tenant.stripeAccountId };
+    }
+    const paymentIntent = await getStripe().paymentIntents.create(piParams);
 
     // Update booking with payment intent
     await prisma.booking.update({
