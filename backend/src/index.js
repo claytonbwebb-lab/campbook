@@ -28,6 +28,7 @@ app.use('/api', router);
 
 // Admin SPA
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../public/admin/index.html')));
+app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, '../public/signup/index.html')));
 
 // Guest booking page
 app.get('/book/:slug', (req, res) => {

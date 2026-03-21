@@ -285,6 +285,63 @@ export const handleStripeConnectReturn = async (req, res) => {
   }
 };
 
+// ── Public: Sign Up ───────────────────────────────────────────────────────────
+
+export const signUp = async (req, res) => {
+  const { campsiteName, email, password, plan } = req.body;
+  if (!campsiteName || !email || !password) {
+    return res.status(400).json({ message: 'Campsite name, email and password are required' });
+  }
+  try {
+    const existing = await prisma.tenant.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ message: 'An account with this email already exists' });
+
+    const slug = campsiteName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      + '-' + Math.random().toString(36).slice(2, 6);
+    const hashed = await bcrypt.hash(password, 10);
+    const now = new Date();
+    const nextYear = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: campsiteName,
+        slug,
+        email,
+        password: hashed,
+        plan: plan || 'campbook_only',
+        openingDate: now,
+        closingDate: nextYear,
+      }
+    });
+
+    const token = jwt.sign({ email: tenant.email, tenantId: tenant.id }, process.env.JWT_SECRET, { expiresIn: '8h' });
+
+    // Send welcome email
+    try {
+      const resend = getResend();
+      const widgetCode = `<div data-campbook-tenant="${slug}"></div>\n<script src="https://campbook.brightstacklabs.co.uk/widget.js"></script>`;
+      await resend.emails.send({
+        from: 'CampBook <info@brightstacklabs.co.uk>',
+        to: email,
+        subject: 'Welcome to CampBook — here\'s your booking widget',
+        html: `<p>Hi there,</p>
+<p>Welcome to CampBook! Your account for <strong>${campsiteName}</strong> is ready.</p>
+<p><strong>Log in to your dashboard:</strong><br>
+<a href="https://campbook.brightstacklabs.co.uk/admin">https://campbook.brightstacklabs.co.uk/admin</a></p>
+<p><strong>Your widget embed code</strong> (paste into your website):<br>
+<code style="background:#f3f4f6;padding:8px 12px;border-radius:6px;display:block;margin:8px 0">${widgetCode.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></p>
+<p>Any questions, just reply to this email.</p>
+<p>Steve<br>Bright Stack Labs</p>`,
+      });
+    } catch (e) { console.error('Welcome email failed:', e.message); }
+
+    res.json({ token, tenantName: tenant.name, slug });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // ── Admin: Login ─────────────────────────────────────────────────────────────
 
 export const adminLogin = async (req, res) => {

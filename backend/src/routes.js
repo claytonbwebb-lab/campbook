@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import express from 'express';
 import authMiddleware from './middleware.js';
+import { signUp } from './controllers.js';
 import {
   getTenantConfig, getAvailability, createBooking, getBookingByRef,
   handleStripeWebhook, initiateStripeConnect, handleStripeConnectReturn,
@@ -27,6 +28,7 @@ router.get('/bookings/:ref', getBookingByRef);
 router.post('/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 // ── Admin Auth ───────────────────────────────────────────────────────────────
+router.post('/signup', signUp);
 router.post('/admin/login', adminLogin);
 
 // ── Admin (JWT protected) ────────────────────────────────────────────────────
