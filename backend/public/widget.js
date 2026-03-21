@@ -139,8 +139,33 @@
 
   Widget.prototype.renderStep3 = function () {
     const w = this.container.querySelector('.cb-widget');
+    const g = this.state.guest;
+    w.innerHTML = `
+      ${this.progress(3)}<h3>Your details</h3>
+      <div class="cb-field"><label>Full name</label><input type="text" id="cb-name" value="${g.name||''}"></div>
+      <div class="cb-field"><label>Email</label><input type="email" id="cb-email" value="${g.email||''}"></div>
+      <div class="cb-field"><label>Phone</label><input type="tel" id="cb-phone" value="${g.phone||''}"></div>
+      <div class="cb-field"><label>Number of adults</label><select id="cb-adults">${[1,2,3,4,5,6].map(n=>`<option ${(g.adults||2)==n?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="cb-field"><label>Number of children</label><select id="cb-children">${[0,1,2,3,4,5].map(n=>`<option ${(g.children||0)==n?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div id="cb-step3-error"></div>
+      <button class="cb-btn" id="cb-step3-next">Continue →</button>
+      <button class="cb-btn cb-btn-outline" id="cb-back">← Back</button>`;
+    w.querySelector('#cb-step3-next').onclick = () => {
+      const name = w.querySelector('#cb-name').value.trim();
+      const email = w.querySelector('#cb-email').value.trim();
+      const phone = w.querySelector('#cb-phone').value.trim();
+      const errEl = w.querySelector('#cb-step3-error');
+      if (!name || !email) { errEl.innerHTML = '<div class="cb-error">Name and email are required.</div>'; return; }
+      this.state.guest = { name, email, phone, adults: parseInt(w.querySelector('#cb-adults').value), children: parseInt(w.querySelector('#cb-children').value) };
+      this.renderStep4();
+    };
+    w.querySelector('#cb-back').onclick = () => this.renderStep2();
+  };
+
+  Widget.prototype.renderStep4_extras = function () {
+    const w = this.container.querySelector('.cb-widget');
     const extras = this.availability.extras || [];
-    w.innerHTML = `${this.progress(3)}<h3>Add extras</h3><div class="cb-extras" id="cb-extras-list"></div><div id="cb-running-total"></div><button class="cb-btn" id="cb-step3-next">Continue →</button><button class="cb-btn cb-btn-outline" id="cb-back">← Back</button>`;
+    w.innerHTML = `${this.progress(4)}<h3>Add extras</h3><div class="cb-extras" id="cb-extras-list"></div><div id="cb-running-total"></div><button class="cb-btn" id="cb-step3-next">Continue →</button><button class="cb-btn cb-btn-outline" id="cb-back">← Back</button>`;
 
     const list = w.querySelector('#cb-extras-list');
     if (!extras.length) { list.innerHTML = '<p style="color:#6b7280;font-size:0.9rem">No extras available for this campsite.</p>'; }
@@ -167,8 +192,8 @@
       list.appendChild(row);
     });
     this.updateTotal(w, extras);
-    w.querySelector('#cb-step3-next').onclick = () => this.renderStep4();
-    w.querySelector('#cb-back').onclick = () => this.renderStep2();
+    w.querySelector('#cb-step3-next').onclick = () => this.renderStep5();
+    w.querySelector('#cb-back').onclick = () => this.renderStep3();
   };
 
   Widget.prototype.updateTotal = function (w, extras) {
@@ -186,28 +211,7 @@
   };
 
   Widget.prototype.renderStep4 = function () {
-    const w = this.container.querySelector('.cb-widget');
-    const g = this.state.guest;
-    w.innerHTML = `
-      ${this.progress(4)}<h3>Your details</h3>
-      <div class="cb-field"><label>Full name</label><input type="text" id="cb-name" value="${g.name||''}"></div>
-      <div class="cb-field"><label>Email</label><input type="email" id="cb-email" value="${g.email||''}"></div>
-      <div class="cb-field"><label>Phone</label><input type="tel" id="cb-phone" value="${g.phone||''}"></div>
-      <div class="cb-field"><label>Number of adults</label><select id="cb-adults">${[1,2,3,4,5,6].map(n=>`<option ${(g.adults||2)==n?'selected':''}>${n}</option>`).join('')}</select></div>
-      <div class="cb-field"><label>Number of children</label><select id="cb-children">${[0,1,2,3,4,5].map(n=>`<option ${(g.children||0)==n?'selected':''}>${n}</option>`).join('')}</select></div>
-      <div id="cb-step4-error"></div>
-      <button class="cb-btn" id="cb-step4-next">Review Booking →</button>
-      <button class="cb-btn cb-btn-outline" id="cb-back">← Back</button>`;
-    w.querySelector('#cb-step4-next').onclick = () => {
-      const name = w.querySelector('#cb-name').value.trim();
-      const email = w.querySelector('#cb-email').value.trim();
-      const phone = w.querySelector('#cb-phone').value.trim();
-      const errEl = w.querySelector('#cb-step4-error');
-      if (!name || !email) { errEl.innerHTML = '<div class="cb-error">Name and email are required.</div>'; return; }
-      this.state.guest = { name, email, phone, adults: parseInt(w.querySelector('#cb-adults').value), children: parseInt(w.querySelector('#cb-children').value) };
-      this.renderStep5();
-    };
-    w.querySelector('#cb-back').onclick = () => this.renderStep3();
+    this.renderStep4_extras();
   };
 
   Widget.prototype.renderStep5 = function () {
