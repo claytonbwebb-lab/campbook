@@ -20,6 +20,7 @@ model Tenant {
   password         String       @map("password")
   openingDate      DateTime     @map("opening_date") @db.Date
   closingDate      DateTime     @map("closing_date") @db.Date
+  plan             String       @default("website_only")
   noGroupsPolicy   Boolean      @default(false) @map("no_groups_policy")
   minBookerAge     Int          @default(18) @map("min_booker_age")
   createdAt        DateTime     @default(now()) @map("created_at")

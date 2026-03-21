@@ -9,6 +9,12 @@ const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_pla
 const getResend = () => new Resend(process.env.RESEND_API_KEY || '');
 const PLATFORM_FEE_PERCENT = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || '3');
 
+function getPlatformFeePercent(plan) {
+  if (plan === 'campbook_only') return 5;
+  if (plan === 'bundle') return 3;
+  return 0; // website_only
+}
+
 // ── Public: Tenant config ────────────────────────────────────────────────────
 
 export const getTenantConfig = async (req, res) => {
@@ -101,7 +107,7 @@ export const createBooking = async (req, res) => {
     const { baseAmount, extrasAmount, totalAmount } = calculateBookingCost(
       pitchType, nights, selectedExtras || [], tenant.extras
     );
-    const platformFee = Math.round(totalAmount * PLATFORM_FEE_PERCENT / 100);
+    const platformFee = Math.round(totalAmount * getPlatformFeePercent(tenant.plan) / 100);
 
     // Atomic: lock an available pitch and create booking
     const result = await prisma.$transaction(async (tx) => {
