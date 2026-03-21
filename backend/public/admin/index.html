@@ -58,6 +58,27 @@
   .stripe-status{display:flex;align-items:center;gap:12px;padding:16px;background:#f9fafb;border-radius:8px;margin-bottom:16px}
   .stripe-dot{width:12px;height:12px;border-radius:50%;background:#dc2626}
   .stripe-dot.connected{background:#16a34a}
+  /* Mobile nav */
+  .mobile-header{display:none;align-items:center;justify-content:space-between;background:#1e293b;padding:14px 18px;position:sticky;top:0;z-index:100}
+  .mobile-header .logo{font-size:1rem;font-weight:700;color:#fff}.mobile-header .logo span{color:#60a5fa}
+  .hamburger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px}
+  .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all 0.2s}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150}
+  .sidebar-overlay.open{display:block}
+  @media(max-width:768px){
+    .mobile-header{display:flex}
+    #app{flex-direction:column}
+    .sidebar{position:fixed;top:0;left:-240px;width:240px;height:100vh;z-index:200;transition:left 0.25s;overflow-y:auto}
+    .sidebar.open{left:0}
+    .main{padding:16px}
+    .stats-grid{grid-template-columns:1fr 1fr}
+    .form-grid{grid-template-columns:1fr}
+    table{font-size:0.8rem}
+    td,th{padding:7px 8px}
+  }
+  @media(max-width:420px){
+    .stats-grid{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
@@ -74,7 +95,15 @@
 </div>
 
 <div id="app">
-  <div class="sidebar">
+  <div class="mobile-header">
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="logo">🏕️ <span>Camp</span>Book</div>
+    <div style="width:30px"></div>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">🏕️ <span>Camp</span>Book</div>
     <div class="nav-section">Overview</div>
     <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
@@ -212,12 +241,21 @@ async function apiFetch(path, opts={}) {
 }
 
 // Nav
+// Mobile sidebar toggle
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+function closeSidebar(){sidebar.classList.remove('open');sidebarOverlay.classList.remove('open')}
+hamburgerBtn.addEventListener('click',()=>{sidebar.classList.toggle('open');sidebarOverlay.classList.toggle('open')});
+sidebarOverlay.addEventListener('click', closeSidebar);
+
 document.querySelectorAll('.nav-item[data-page]').forEach(el => {
   el.onclick = () => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     document.getElementById(`page-${el.dataset.page}`).classList.add('active');
+    closeSidebar();
   };
 });
 document.getElementById('logout-btn').onclick = () => { localStorage.removeItem('cb_token'); location.reload(); };
