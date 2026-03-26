@@ -21,7 +21,7 @@
       .cb-step { display: none; } .cb-step.cb-active { display: block; }
       .cb-field { margin-bottom: 14px; }
       .cb-field label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; text-align: center; }
-      .cb-field input, .cb-field select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; outline: none; }
+      .cb-field input, .cb-field select { width: 100%; padding: 10px 12px; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; outline: none; }
       .cb-field input:focus, .cb-field select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
       .cb-btn { display: inline-block; padding: 11px 22px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
       .cb-btn:hover { background: #1d4ed8; } .cb-btn:disabled { background: #9ca3af; cursor: not-allowed; }
