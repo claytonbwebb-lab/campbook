@@ -17,7 +17,7 @@
     const css = `
       .cb-widget * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
       .cb-widget { max-width: 520px; margin: 0 auto; padding: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; }
-      .cb-widget h3 { margin: 0 0 16px; font-size: 1.2rem; color: #111; }
+      .cb-widget h3 { text-align: center; margin: 0 0 16px; font-size: 1.2rem; color: #111; }
       .cb-step { display: none; } .cb-step.cb-active { display: block; }
       .cb-field { margin-bottom: 14px; }
       .cb-field label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
