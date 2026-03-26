@@ -31,32 +31,6 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), handle
 router.post('/signup', signUp);
 router.post('/admin/login', adminLogin);
 
-// ── Demo Seed (secret) ──────────────────────────────────────────────────────
-router.post('/admin/seed-demo', async (req, res) => {
-  if (req.body.secret !== 'BrightStack2026!') return res.status(401).json({ error: 'Unauthorized' });
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
-  try {
-    const tenant = await prisma.tenant.findUnique({ where: { slug: 'demo-campsite' } });
-    const pitches = await prisma.pitchType.findMany({ where: { tenantId: tenant.id } });
-    const bookings = [
-      { guestName: 'John Smith', guestEmail: 'john.smith@email.com', guestPhone: '07700900001', arrivalDate: '2026-04-10', departureDate: '2026-04-14', status: 'CONFIRMED', totalPaid: 320, pitchTypeId: pitches[0].id, guests: 2, children: 0 },
-      { guestName: 'Sarah Jones', guestEmail: 'sarah.j@email.com', guestPhone: '07700900002', arrivalDate: '2026-04-15', departureDate: '2026-04-18', status: 'CONFIRMED', totalPaid: 180, pitchTypeId: pitches[0].id, guests: 2, children: 1 },
-      { guestName: 'Mike Brown', guestEmail: 'mike.brown@email.com', guestPhone: '07700900003', arrivalDate: '2026-04-20', departureDate: '2026-04-25', status: 'PENDING', totalPaid: 0, pitchTypeId: pitches[1].id, guests: 4, children: 2 },
-      { guestName: 'Emma Wilson', guestEmail: 'emma.w@email.com', guestPhone: '07700900004', arrivalDate: '2026-05-01', departureDate: '2026-05-07', status: 'CONFIRMED', totalPaid: 420, pitchTypeId: pitches[0].id, guests: 2, children: 0 },
-      { guestName: 'David Lee', guestEmail: 'david.lee@email.com', guestPhone: '07700900005', arrivalDate: '2026-05-10', departureDate: '2026-05-12', status: 'CONFIRMED', totalPaid: 150, pitchTypeId: pitches[1].id, guests: 2, children: 0 },
-    ];
-    for (const b of bookings) {
-      await prisma.booking.create({ data: { ...b, tenantId: tenant.id } });
-    }
-    res.json({ success: true, count: bookings.length });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    prisma.$disconnect();
-  }
-});
-
 // ── Admin (JWT protected) ────────────────────────────────────────────────────
 router.use('/admin', authMiddleware);
 
