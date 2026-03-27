@@ -90,6 +90,17 @@
         <button class="cb-btn" id="cb-step1-next">Check Availability →</button>
       </div>`;
 
+    const arrInput = w.querySelector('#cb-arrival');
+    const depInput = w.querySelector('#cb-departure');
+    arrInput.onchange = () => {
+      if (!arrInput.value) return;
+      const next = new Date(arrInput.value);
+      next.setDate(next.getDate() + 1);
+      const nextStr = next.toISOString().slice(0, 10);
+      depInput.min = nextStr;
+      if (!depInput.value || depInput.value <= arrInput.value) depInput.value = nextStr;
+    };
+
     w.querySelector('#cb-step1-next').onclick = () => {
       const arr = w.querySelector('#cb-arrival').value;
       const dep = w.querySelector('#cb-departure').value;
