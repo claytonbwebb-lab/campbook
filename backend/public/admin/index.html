@@ -70,17 +70,13 @@
     #app{flex-direction:column}
     .sidebar{position:fixed;top:0;left:-240px;width:240px;height:100vh;z-index:200;transition:left 0.25s;overflow-y:auto}
     .sidebar.open{left:0}
-    .main{padding:16px}
+    .main{padding:16px;overflow-x:auto}
     .stats-grid{grid-template-columns:1fr 1fr}
     .form-grid{grid-template-columns:1fr}
-    /* Bookings table: wrap in scroll container, hide non-essential columns */
-    .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    table{font-size:0.82rem;min-width:0}
+    /* Card expands to fit table — page/main scrolls horizontally */
+    .card{min-width:0}
+    table{font-size:0.82rem}
     td,th{padding:8px 10px;white-space:nowrap}
-    /* Hide Departure, Pitch, Total on mobile — keep Ref, Guest, Arrival, Status, Cancel */
-    .col-departure,.col-pitch,.col-total{display:none}
-    /* Guest name: allow wrap, cap width */
-    .col-guest{white-space:normal;max-width:140px;word-break:break-word}
   }
   @media(max-width:420px){
     .stats-grid{grid-template-columns:1fr}
@@ -277,9 +273,9 @@ async function loadDashboard() {
     <div class="stat-card"><div class="stat-label">Revenue this month</div><div class="stat-value">${fmt(d.revenueThisMonth)}</div></div>
     <div class="stat-card"><div class="stat-label">Arriving this week</div><div class="stat-value">${d.upcomingThisWeek.length}</div></div>`;
   if (!d.upcomingThisWeek.length) { document.getElementById('upcoming-bookings').innerHTML = '<div class="empty">No arrivals this week.</div>'; return; }
-  document.getElementById('upcoming-bookings').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th class="col-pitch">Pitch</th><th class="col-total">Total</th></tr></thead><tbody>${
-    d.upcomingThisWeek.map(b => `<tr><td><strong>${b.bookingRef}</strong></td><td class="col-guest">${b.guestName}</td><td>${new Date(b.arrivalDate).toLocaleDateString('en-GB')}</td><td class="col-pitch">${b.pitch?.pitchType?.name||'—'}</td><td class="col-total">${fmt(b.totalAmount)}</td></tr>`).join('')
-  }</tbody></table></div>`;
+  document.getElementById('upcoming-bookings').innerHTML = `<table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th>Pitch</th><th>Total</th></tr></thead><tbody>${
+    d.upcomingThisWeek.map(b => `<tr><td><strong>${b.bookingRef}</strong></td><td>${b.guestName}</td><td>${new Date(b.arrivalDate).toLocaleDateString('en-GB')}</td><td>${b.pitch?.pitchType?.name||'—'}</td><td>${fmt(b.totalAmount)}</td></tr>`).join('')
+  }</tbody></table>`;
 }
 
 // Bookings
@@ -288,18 +284,18 @@ async function loadBookings() {
   const d = await apiFetch(`/api/admin/bookings${status ? '?status='+status : ''}`);
   const fmt = p => '£'+(p/100).toFixed(2);
   if (!d.length) { document.getElementById('bookings-table').innerHTML = '<div class="empty">No bookings found.</div>'; return; }
-  document.getElementById('bookings-table').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th class="col-departure">Departure</th><th class="col-pitch">Pitch</th><th class="col-total">Total</th><th>Status</th><th></th></tr></thead><tbody>${
+  document.getElementById('bookings-table').innerHTML = `<table><thead><tr><th>Ref</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Pitch</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>${
     d.map(b => `<tr>
       <td><strong>${b.bookingRef}</strong></td>
-      <td class="col-guest">${b.guestName}<br><small style="color:#6b7280">${b.guestEmail}</small></td>
+      <td>${b.guestName}<br><small style="color:#6b7280">${b.guestEmail}</small></td>
       <td>${new Date(b.arrivalDate).toLocaleDateString('en-GB')}</td>
-      <td class="col-departure">${new Date(b.departureDate).toLocaleDateString('en-GB')}</td>
-      <td class="col-pitch">${b.pitch?.pitchType?.name||'—'} / ${b.pitch?.name||'—'}</td>
-      <td class="col-total">${fmt(b.totalAmount)}</td>
+      <td>${new Date(b.departureDate).toLocaleDateString('en-GB')}</td>
+      <td>${b.pitch?.pitchType?.name||'—'} / ${b.pitch?.name||'—'}</td>
+      <td>${fmt(b.totalAmount)}</td>
       <td><span class="badge badge-${b.status}">${b.status}</span></td>
       <td>${b.status !== 'cancelled' ? `<button class="btn-sm danger" onclick="cancelBooking('${b.id}','${b.bookingRef}')">Cancel</button>` : ''}</td>
     </tr>`).join('')
-  }</tbody></table></div>`;
+  }</tbody></table>`;
 }
 
 async function cancelBooking(id, ref) {
