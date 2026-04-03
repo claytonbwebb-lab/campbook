@@ -69,7 +69,11 @@ app.listen(PORT, async () => {
     const prisma = new PrismaClient();
     const existing = await prisma.booking.count({ where: { tenant: { slug: 'demo-campsite' } } });
 
-    if (existing === 0) {
+    // Always reset bookings on startup (demo data refresh)
+    if (true) {
+      // Delete existing bookings first
+      await prisma.booking.deleteMany({ where: { tenantId: tenant.id } });
+      console.log('Cleared existing bookings, re-seeding...');
       const tenant = await prisma.tenant.findUnique({ where: { slug: 'demo-campsite' } });
       if (!tenant) { await prisma.$disconnect(); return; }
 
