@@ -66,3 +66,25 @@ router.get('/admin/stripe/connect', initiateStripeConnect);
 router.get('/admin/stripe/connect/return', handleStripeConnectReturn);
 
 export default router;
+
+// DEBUG endpoint - remove after use
+router.get('/debug-dashboard', async (req, res) => {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const tenant = await prisma.tenant.findUnique({ where: { slug: 'demo-campsite' } });
+  const count = await prisma.booking.count({ 
+    where: { tenantId: tenant.id, status: 'confirmed', arrivalDate: { gte: monthStart } } 
+  });
+  const allBookings = await prisma.booking.findMany({ where: { tenantId: tenant.id } });
+  await prisma.$disconnect();
+  res.json({ 
+    now: now.toISOString(), 
+    monthStart: monthStart.toISOString(), 
+    tenantId: tenant?.id,
+    aprilBookings: count, 
+    totalBookings: allBookings.length,
+    sampleArrivals: allBookings.slice(0,3).map(b => ({ ref: b.bookingRef, arrival: b.arrivalDate, status: b.status }))
+  });
+});
