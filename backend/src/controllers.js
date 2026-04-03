@@ -616,9 +616,9 @@ export const getDashboardStats = async (req, res) => {
         include: { pitch: { include: { pitchType: true } } },
         orderBy: { arrivalDate: 'asc' }, take: 10,
       }),
-      prisma.booking.count({ where: { tenantId: req.tenant.id, status: 'confirmed', createdAt: { gte: monthStart } } }),
+      prisma.booking.count({ where: { tenantId: req.tenant.id, status: 'confirmed', arrivalDate: { gte: monthStart } } }),
       prisma.booking.aggregate({
-        where: { tenantId: req.tenant.id, status: 'confirmed', createdAt: { gte: monthStart } },
+        where: { tenantId: req.tenant.id, status: 'confirmed', arrivalDate: { gte: monthStart } },
         _sum: { totalAmount: true },
       }),
     ]);
