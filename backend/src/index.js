@@ -91,7 +91,7 @@ app.listen(PORT, async () => {
       let refCounter = 1;
       const ref = () => `CB${String(refCounter++).padStart(5, '0')}`;
       const d = (offsetDays) => {
-        const dt = new Date('2026-03-27');
+        const dt = new Date('2026-04-03'); // Base date in current month
         dt.setDate(dt.getDate() + offsetDays);
         return dt;
       };
