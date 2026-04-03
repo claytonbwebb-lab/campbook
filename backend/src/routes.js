@@ -65,8 +65,6 @@ router.patch('/admin/settings', updateSettings);
 router.get('/admin/stripe/connect', initiateStripeConnect);
 router.get('/admin/stripe/connect/return', handleStripeConnectReturn);
 
-export default router;
-
 // DEBUG endpoint - remove after use
 router.get('/debug-dashboard', async (req, res) => {
   const { PrismaClient } = await import('@prisma/client');
@@ -88,3 +86,5 @@ router.get('/debug-dashboard', async (req, res) => {
     sampleArrivals: allBookings.slice(0,3).map(b => ({ ref: b.bookingRef, arrival: b.arrivalDate, status: b.status }))
   });
 });
+
+export default router;
