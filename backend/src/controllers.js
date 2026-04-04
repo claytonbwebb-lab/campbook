@@ -606,9 +606,10 @@ export const updateSettings = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
+    // Use UTC dates to avoid timezone issues
     const now = new Date();
-    const weekAhead = new Date(now.getTime() + 7 * 86400000);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekAhead = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7));
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
     const [upcoming, monthlyBookings, totalRevenue] = await Promise.all([
       prisma.booking.findMany({

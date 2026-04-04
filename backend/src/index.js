@@ -95,8 +95,9 @@ app.listen(PORT, async () => {
       let refCounter = 1;
       const ref = () => `CB${String(refCounter++).padStart(5, '0')}`;
       const d = (offsetDays) => {
-        const dt = new Date('2026-04-03'); // Base date in current month
-        dt.setDate(dt.getDate() + offsetDays);
+        // Use UTC date to avoid timezone issues
+        const dt = new Date(Date.UTC(2026, 3, 3)); // April 3, 2026 in UTC (month is 0-indexed)
+        dt.setUTCDate(dt.getUTCDate() + offsetDays);
         return dt;
       };
 
